@@ -95,7 +95,7 @@ def load_bd_from_config(config, key)
   if value.nil?
     abort "Did not find #{key} in config file"
   end
-  return BigDecimal.new(value.to_s)
+  return BigDecimal(value.to_s)
 end
 
 # puz (print unless zero)
@@ -105,9 +105,9 @@ end
 
 # Print out hash values, and return sum of values
 def print_and_total_hash(input_hash)
-  total = BigDecimal.new("0")
+  total = BigDecimal("0")
   input_hash.each do |key, value|
-    v = BigDecimal.new(value.to_s)
+    v = BigDecimal(value.to_s)
     puz "\t#{v.to_digits}\t(#{key.gsub("_", " ").capitalize})", v
     total = total + v
   end
@@ -137,34 +137,34 @@ def calculate_paye(taxable_amount, standard_cutoff_rate, tax_credits)
   result = Hash.new
 
   result['taxable_at_lower_rate_amount'] = taxable_amount > standard_cutoff_rate ? standard_cutoff_rate : taxable_amount
-  result['taxable_at_higher_rate_amount'] = taxable_amount > standard_cutoff_rate ? (taxable_amount - standard_cutoff_rate) : BigDecimal.new("0")
+  result['taxable_at_higher_rate_amount'] = taxable_amount > standard_cutoff_rate ? (taxable_amount - standard_cutoff_rate) : BigDecimal("0")
 
-  result['tax_payable_at_lower_rate'] = (result['taxable_at_lower_rate_amount'] * BigDecimal.new("0.20"))
-  result['tax_payable_at_higher_rate'] = (result['taxable_at_higher_rate_amount'] * BigDecimal.new("0.40"))
+  result['tax_payable_at_lower_rate'] = (result['taxable_at_lower_rate_amount'] * BigDecimal("0.20"))
+  result['tax_payable_at_higher_rate'] = (result['taxable_at_higher_rate_amount'] * BigDecimal("0.40"))
 
   result['paye_pre_tax_credits_deduction'] = result['tax_payable_at_lower_rate'] + result['tax_payable_at_higher_rate']
   result['paye'] = (result['paye_pre_tax_credits_deduction'] - tax_credits).round 2
   return result
 end
 
-def calculate_usc(taxable_amount, point_five_percent_band, two_percent_band, four_point_five_percent_band)
+def calculate_usc(taxable_amount, point_five_percent_band, two_percent_band, three_percent_band)
   result = Hash.new
 
   already_charged = 0
   result['chargable_at_point_five'] = taxable_amount > point_five_percent_band ? point_five_percent_band : taxable_amount
   already_charged += point_five_percent_band
-  result['chargable_at_two'] = taxable_amount > (already_charged + two_percent_band) ? two_percent_band : ( taxable_amount > already_charged ? (taxable_amount - already_charged) : BigDecimal.new("0"))
+  result['chargable_at_two'] = taxable_amount > (already_charged + two_percent_band) ? two_percent_band : ( taxable_amount > already_charged ? (taxable_amount - already_charged) : BigDecimal("0"))
   already_charged += two_percent_band
-  result['chargable_at_four_point_five'] = taxable_amount > (already_charged + four_point_five_percent_band) ? four_point_five_percent_band : ( taxable_amount > already_charged ? (taxable_amount - already_charged) : BigDecimal.new("0"))
-  already_charged += four_point_five_percent_band
-  result['chargable_at_eight'] = taxable_amount > already_charged ? (taxable_amount - already_charged) : BigDecimal.new("0")
+  result['chargable_at_three'] = taxable_amount > (already_charged + three_percent_band) ? three_percent_band : ( taxable_amount > already_charged ? (taxable_amount - already_charged) : BigDecimal("0"))
+  already_charged += three_percent_band
+  result['chargable_at_eight'] = taxable_amount > already_charged ? (taxable_amount - already_charged) : BigDecimal("0")
 
-  result['usc_payable_at_point_five'] = (result['chargable_at_point_five'] * BigDecimal.new("0.005"))
-  result['usc_payable_at_two'] = (result['chargable_at_two'] * BigDecimal.new("0.02"))
-  result['usc_payable_at_four_point_five'] = (result['chargable_at_four_point_five'] * BigDecimal.new("0.045"))
-  result['usc_payable_at_eight'] = (result['chargable_at_eight'] * BigDecimal.new("0.08"))
+  result['usc_payable_at_point_five'] = (result['chargable_at_point_five'] * BigDecimal("0.005"))
+  result['usc_payable_at_two'] = (result['chargable_at_two'] * BigDecimal("0.02"))
+  result['usc_payable_at_three'] = (result['chargable_at_three'] * BigDecimal("0.03"))
+  result['usc_payable_at_eight'] = (result['chargable_at_eight'] * BigDecimal("0.08"))
 
-  result['usc'] = (result['usc_payable_at_point_five'] + result['usc_payable_at_two'] + result['usc_payable_at_four_point_five'] + result['usc_payable_at_eight']).round 2
+  result['usc'] = (result['usc_payable_at_point_five'] + result['usc_payable_at_two'] + result['usc_payable_at_three'] + result['usc_payable_at_eight']).round 2
   return result
 end
 
@@ -227,7 +227,7 @@ if File.exists? options.config_file_path
     tax_credit = load_bd_from_config config_file, "tax_credit"
     usc_point_five_percent_band = load_bd_from_config config_file, "point_five_percent_band"
     usc_two_percent_band = load_bd_from_config config_file, "two_percent_band"
-    usc_four_point_five_percent_band = load_bd_from_config config_file, "four_point_five_percent_band"
+    usc_three_percent_band = load_bd_from_config config_file, "three_percent_band"
   end
 else
   abort "Couldn't find #{options.config_file_path}. Does this file exist?"
@@ -250,8 +250,8 @@ if gets.strip == 'yes'
   print 'what is the total gross amount on your payslip? >: '
   cr_gross_amount = gets.to_d
 else
-  cr_voucher_amount = BigDecimal.new("0")
-  cr_gross_amount = BigDecimal.new("0")
+  cr_voucher_amount = BigDecimal("0")
+  cr_gross_amount = BigDecimal("0")
 end
 
 bik_to_enter = true
@@ -294,7 +294,7 @@ puts "-PAYE Standard rate cutoff: #{standard_cutoff_rate.to_digits}"
 puts "-PAYE Tax credit: #{tax_credit.to_digits}"
 puts "-USC 0.5% Band: #{usc_point_five_percent_band.to_digits}"
 puts "-USC 2% Band: #{usc_two_percent_band.to_digits}"
-puts "-USC 4.5% Band: #{usc_four_point_five_percent_band.to_digits}"
+puts "-USC 3% Band: #{usc_three_percent_band.to_digits}"
 
 pause unless !options.pause
 
@@ -328,10 +328,10 @@ puz "\t\t+ #{gross_bonus_award.to_digits}\t\t(CAP Award)", gross_bonus_award
 puz "\t\t+ #{pli_bonus.to_digits}\t\t(PL&I Bonus)", pli_bonus
 puz "\t\t+ #{cr_gross_amount.to_digits}\t\t(Connected Recognition Gross Amount)", cr_gross_amount
 if car_allowance_hash["type"] == "cash"
-  car_allowance = BigDecimal.new(car_allowance_hash["value"].to_s)
+  car_allowance = BigDecimal(car_allowance_hash["value"].to_s)
   puts "\t\t+ #{car_allowance.to_digits}\t\t(Car Allowance)"
 else
-  car_allowance = BigDecimal.new("0")
+  car_allowance = BigDecimal("0")
 end
 puz "\t\t- #{salary_sacrifice_total.to_digits}\t\t(Salary Sacrifices)", salary_sacrifice_total
 gross_income = regular_salary + extra_pay + gross_bonus_award + pli_bonus + cr_gross_amount + car_allowance - salary_sacrifice_total
@@ -360,7 +360,7 @@ if pension_contribution_percentage > 0
   puts ""
   puts "TOTAL PENSION CONTRIBUTION = #{pension_contribution.to_digits}"
 else
-  pension_contribution = BigDecimal.new("0")
+  pension_contribution = BigDecimal("0")
 end
 
 pause unless !options.pause
@@ -395,11 +395,11 @@ usc_input = gross_income + bik_total + espp_gain
 puts "Total Input\t= #{usc_input.to_digits}"
 puts ""
 
-usc_result = calculate_usc usc_input, usc_point_five_percent_band, usc_two_percent_band, usc_four_point_five_percent_band
+usc_result = calculate_usc usc_input, usc_point_five_percent_band, usc_two_percent_band, usc_three_percent_band
 
 puts "#{usc_result['chargable_at_point_five'].to_digits} @ 0.5%\t  #{usc_result['usc_payable_at_point_five'].round(2).to_digits}\t(#{usc_result['usc_payable_at_point_five'].to_digits})"
 puts "#{usc_result['chargable_at_two'].to_digits} @ 2%\t  #{usc_result['usc_payable_at_two'].round(2).to_digits}\t(#{usc_result['usc_payable_at_two'].to_digits})"
-puts "#{usc_result['chargable_at_four_point_five'].to_digits} @ 4.5%\t  #{usc_result['usc_payable_at_four_point_five'].round(2).to_digits}\t(#{usc_result['usc_payable_at_four_point_five'].to_digits})"
+puts "#{usc_result['chargable_at_three'].to_digits} @ 3%\t  #{usc_result['usc_payable_at_three'].round(2).to_digits}\t(#{usc_result['usc_payable_at_three'].to_digits})"
 
 puts "#{usc_result['chargable_at_eight'].to_digits} @ 8%\t  #{usc_result['usc_payable_at_eight'].round(2).to_digits}\t(#{usc_result['usc_payable_at_eight'].to_digits})"
 puts ""
@@ -416,8 +416,8 @@ prsi_input = gross_income + bik_total + espp_gain
 puts "Total Input\t= #{prsi_input.to_digits}"
 puts ""
 
-total_prsi = (prsi_input * BigDecimal.new("0.04")).round(2)
-puts "#{prsi_input.to_digits} @ 4% = #{total_prsi.to_digits}"
+total_prsi = (prsi_input * BigDecimal("0.041")).round(2)
+puts "#{prsi_input.to_digits} @ 4.1% = #{total_prsi.to_digits}"
 puts ""
 puts "TOTAL PRSI\t= #{total_prsi.to_digits}"
 
@@ -438,7 +438,7 @@ if espp_contribution_percentage > 0
   puts ""
   puts "TOTAL ESPP CONTRIBUTION = #{espp.to_digits}"
 else
-  espp = BigDecimal.new("0")
+  espp = BigDecimal("0")
 end
 
 pause unless !options.pause
